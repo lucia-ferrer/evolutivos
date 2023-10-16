@@ -1,6 +1,7 @@
 import numpy as np
 from deap import base, creator, tools, algorithms
 import matplotlib.pyplot as plt
+import time
 
 # Carga las coordenadas de las ciudades desde el archivo .npy
 cities = np.load("ciudades.npy")
@@ -29,6 +30,9 @@ generations = 1000
 crossover_prob = 0.7
 mutation_prob = 0.2
 
+# Medir el tiempo
+start_time = time.time()
+
 # Crea la población inicial
 population = toolbox.population(n=population_size)
 
@@ -39,6 +43,16 @@ algorithms.eaMuPlusLambda(population, toolbox, mu=population_size, lambda_=2 * p
 # Obtiene el mejor individuo
 best_individual = tools.selBest(population, 1)[0]
 
+# Calcula el tiempo empleado
+elapsed_time = time.time() - start_time
+
 # Imprime la mejor ruta y su distancia
 print("Mejor recorrido:", best_individual)
 print("Distancia del mejor recorrido:", sum(best_individual.fitness.values))
+print(f"Tiempo empleado: {elapsed_time} segundos")
+
+# Visualizar la ruta
+best_route = np.array(best_individual)
+plt.scatter(cities[:, 0], cities[:, 1])
+plt.plot(cities[best_route, 0], cities[best_route, 1], 'r-')
+plt.show()
