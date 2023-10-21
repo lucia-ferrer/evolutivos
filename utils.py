@@ -1,7 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from itertools import permutations
 import os
 import random
 import time
@@ -109,19 +108,10 @@ def probabilities(pop, graph, max_cost):
     return list(tmp / s)
 
 def initialize_population(m, n):
-    # Generate all permutations of range(n) elements
-    all_permutations = list(permutations(range(1, n)))  # Exclude 0 for now
-
-    # Create a NumPy array filled with zeros
-    matrix = np.zeros((m, n), dtype=int)
-
-    # Fill the matrix with permutations, ensuring the first element is always 0
-    for i in range(m):
-        perm = all_permutations[i]
-        matrix[i, 1:] = perm
-    print(matrix)
-    quit()
-    return matrix
+    rng = np.random.default_rng()
+    pop = np.array([rng.permutation(np.arange(1, n)) for _ in range(m)])
+    pop = np.insert(pop, 0, 0, axis=1)
+    return pop
 
    
 
