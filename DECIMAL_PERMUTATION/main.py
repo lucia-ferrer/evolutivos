@@ -10,13 +10,7 @@ import pandas as pd
 
 """
     ###########################  UTILS ##################################################
-    Parser : file, numPop (members), generatioon_num (iterations), mutation prob(0.25)
-    -> get_config
-    
-    Others : 
-    -> deep copy with : copy_list
-    -> visualize path : draw_result
-    -> visualize learning : draw_fit
+
 """
 def get_config():
     # Creates a parser to receive the input argument.
@@ -35,39 +29,34 @@ def get_config():
 def copy_list(old_arr: [int]):
     return [e for e in old_arr]
 
-"""
-    ###########################  SOLUCION GENETICA TSP #######################################
-    
-    AG class con el desarrolllo de los operadores : cruce y mutacion, más seleccion por torneo.
-    Individual class : contiente las caracteristicas de un individuo. 
-"""
-
-# Individual class for representing a solution
+""" #######################   AG   #########################################"""
+#_________________________________________________________________________
+# _________________________ GENOMA _______________________________________
 class Individual:
     def __init__(self, genoma=None):
-        # Randomly generate a sequence if not provided
-        if genoma is None:
+        if genoma is None: # Generar una secuencia de manera aleatoria si no se proporciona
             genoma = [i for i in range(numGenes)]
             random.shuffle(genoma)
         self.genoma = genoma
         self.fitness = self.evaluate_fitness()
 
     def evaluate_fitness(self):
-        #  Calculate the fitness of an individual
+         # Calcular la aptitud de un individuo
         fitness = 0.0
         for i in range(numGenes - 1):
             fitness += matrix_dist[self.genoma[i], self.genoma[i + 1]]
-         # Connect the last city to the first city
+        # Conectar la última ciudad con la primera ciudad
         fitness += matrix_dist[self.genoma[-1], self.genoma[0]]
         return fitness
 
-# Genetic Algorithm class
+#_________________________________________________________________________
+# _________________________ ALGORITHM _______________________________________
 class AG_PER_DEC:
     def __init__(self, input_):
-        self.best = None # Best individual of each generation
-        self.gen_individuals = []  # This list stores the individuals of the current generation. 
-        self.final_individuals = []  # This list stores the final individuals (best-performing individuals) from each generation.
-        self.final_fitnesses = []  # This list stores the fitness (cost) of the best individual from each generation.
+        self.best = None # Mejor individuo de cada generación
+        self.gen_individuals = []  # Esta lista almacena a los individuos de la generación actual
+        self.final_individuals = []  # Esta lista almacena a los individuos finales (mejores) de cada generación
+        self.final_fitnesses = []  # Esta lista almacena la aptitud (costo) del mejor individuo de cada generación
         self.it = 0
     
     
@@ -75,53 +64,52 @@ class AG_PER_DEC:
         new_gen = []
         random.shuffle(self.gen_individuals)
         for i in range(0, numPop - 1, 2):
-            # Parent genoma original individuo and next one. (RANDOMLY ORDERED)
+             # Genoma del padre original del individuo y del siguiente (ORDENADO DE MANERA ALEATORIA)
             genoma1 = copy_list(self.gen_individuals[i].genoma)
             genoma2 = copy_list(self.gen_individuals[i + 1].genoma)
 
-            #Random min and max range to be interchanged / cruzado. 
-            idx1 = random.randint(0,numGenes - 2) #keep last position empty so as to have at least 1. 
+            # Rango mínimo y máximo para ser intercambiados/cruzados de manera aleatoria
+            idx1 = random.randint(0,numGenes - 2) # mantener la última posición vacía para asegurar al menos 1
             idx2 = random.randint(idx1, numGenes - 1)
-            #Positions of cities within genoma.
+             # Posiciones de las ciudades dentro del genoma
             pos1_recorder = {city: idx for idx, city in enumerate(genoma1)}
             pos2_recorder = {city: idx for idx, city in enumerate(genoma2)}
 
-             # Crossover
+             # Cruce (crossover)
             for j in range(idx1, idx2):
-                #store values of both individuals. 
+                 # Almacenar los valores de ambos individuos
                 city1, city2 = genoma1[j], genoma2[j]
                 pos1, pos2 = pos1_recorder[city2], pos2_recorder[city1]
 
-                #interchange with the random indx, and corresponding values.
+                # Intercambiar con el índice aleatorio y los valores correspondientes
                 genoma1[j], genoma1[pos1] = genoma1[pos1], genoma1[j]
                 genoma2[j], genoma2[pos2] = genoma2[pos2], genoma2[j]
 
                 pos1_recorder[city1], pos1_recorder[city2] = pos1, j
                 pos2_recorder[city1], pos2_recorder[city2] = j, pos2
                 
-            #In the new generation add the sucessors. 
+            # En la nueva generación, agregar a los sucesores
             new_gen.append(Individual(genoma1))
             new_gen.append(Individual(genoma2))
         return new_gen
 
-    def mutate(self, new_gen): #with probability 0.25 by default. 
+    def mutate(self, new_gen):
         for individual in new_gen:
             if random.random() < mutRate:
-                # deep copy :) cus if not it is hard. 
                 old_genoma = copy_list(individual.genoma)
-                #Range of the genoma to mutate / reverse
-                idx1 = random.randint(0, numGenes - 2) #again at least 1. 
+                # Rango del genoma a mutar/invertir
+                idx1 = random.randint(0, numGenes - 2)
                 idx2 = random.randint(idx1, numGenes - 1)
-                # Reverse a slice
+                 # Invertir un fragmento
                 genoma_mutate = old_genoma[idx1:idx2]
                 genoma_mutate.reverse()
-                #if the idx where not 0 or -1 keep original parts. 
+                 # Si los índices no eran 0 o -1, mantener las partes originales
                 individual.genoma = old_genoma[:idx1] + genoma_mutate + old_genoma[idx2:]
-        # Combine two generations
+        # Combinar dos generaciones
         self.gen_individuals += new_gen
 
     def select(self):
-        # Tournament selection ~ Cross validation
+        # Selección por torneo ~ Cross validation
         group_num = 10  # Number of groups
         group_size = 10  # Number of individuals in each group
         group_winner = numPop // group_num  # Number of winners in each group
@@ -129,19 +117,19 @@ class AG_PER_DEC:
         for i in range(group_num):
             group = []
             for j in range(group_size):
-                # Randomly form a group
+                # Formar aleatoriamente un grupo
                 player = random.choice(self.gen_individuals)
                 player = Individual(player.genoma)
                 group.append(player)
+            # Obtener a los ganadores
             group = AG_PER_DEC.rank(group)
-             # Get the winners
             winners += group[:group_winner]
-        #update the individuals with only the winners. 
+        # Actualizar los individuos solo con los ganadores <- ELISTISMO
         self.gen_individuals = winners
 
     @staticmethod
     def rank(group):
-        # Bubble sort <- straight :)
+         # Ordenamiento de burbuja (bubble sort)
         for i in range(1, len(group)):
             for j in range(0, len(group) - i):
                 if group[j].fitness > group[j + 1].fitness:
@@ -155,19 +143,19 @@ class AG_PER_DEC:
         self.mutate(new_gen)
         # (3) Selection
         self.select()
-        # Fit and store the best performing / winner. 
+        # Calcular y almacenar al mejor individuo de desempeño (ganador)
         for individual in self.gen_individuals:
             if individual.fitness < self.best.fitness:
                 self.best = individual
 
-    def stop(self):
-        if self.final_fitnesses[-500] - self.final_fitnesses[-1] < 7 : 
-            return True 
-        return False
+    # def stop(self):
+    #     if self.final_fitnesses[-500] - self.final_fitnesses[-1] < 7 : 
+    #         return True 
+    #     return False
     
     def has_converged(self, window_size=20, threshold=1e1):
         if len(self.final_fitnesses) < window_size * 2:
-            # Not enough data for comparison
+            ## No hay suficientes datos para la comparación
             return False
 
         current_window = self.final_fitnesses[-window_size:]
@@ -180,8 +168,7 @@ class AG_PER_DEC:
 
     @timeout_decorator.timeout(TIMEOUT)
     def train(self):
-        self.it +=1
-        # Initial random population & cost
+        # Población inicial aleatoria y costo
         self.gen_individuals = [Individual() for _ in range(numPop)]
         self.best = self.gen_individuals[0]
         # Iteration
@@ -189,7 +176,6 @@ class AG_PER_DEC:
             self.it +=1
 
             self.sucessor_gen()
-             # Connect the last city to the first city
             result = copy_list(self.best.genoma)
             result.append(result[0])
             self.final_individuals.append(result)
@@ -204,13 +190,14 @@ class AG_PER_DEC:
 """
 
 def read_file_matrix(f):
-    file_name = os.getcwd() + '/' + f
+    file_name = root + '/files/' + f
     return np.load(file_name)
 
 if __name__ == '__main__':
 
     current_file_path = os.path.abspath(__file__)
     folder = os.path.basename(os.path.dirname(current_file_path))
+    root = os.get.pathdir(os.getcwd()) 
     args = get_config()
     random.seed(4)
 
@@ -233,8 +220,7 @@ if __name__ == '__main__':
     except timeout_decorator.TimeoutError:
         end_time = time.time()
     
-    print(fitness_list)
-    print()
+    #TO CSV SOLUTION
     print(f'PROBLEM: {args.file}, SOLVER: {folder}, ITER: {ga.it}, TIME: {end_time-start_time}, BEST_COST: {ga.best.fitness}, BEST_PATH:{ga.best.genoma}' )
     ok = pd.DataFrame({'PROBLEM':args.file, 'ARGS': str(args), 'SOLVER':folder, 'iter':ga.it, 'TIME':end_time-start_time, 'BEST_COST':ga.best.fitness, 'BEST_PATH':str(ga.best.genoma)}, index=[0])
     df = pd.read_csv('results.csv')
@@ -242,17 +228,17 @@ if __name__ == '__main__':
     df.to_csv('results.csv', index=False)
     
     
-    
+    #PLOT FITTNESS
     fig, ax = plt.subplots()
     plt.plot(fitness_list)
-    fig = plt.gcf()
     plt.xlabel("Iterations")
     plt.ylabel("Fitness: cost")
-    plt.title("Line Plot of fitness evolution")
-    plt.savefig(f'{args.file}.fit.{folder}.png')
+    plt.title(f"{folder}-{args}")
+    plt.savefig(root + f'/figures/{args}.fit.{folder}.png')
     plt.show()
 
-    if numGenes < 20 : # Create a graph from the adjacency matrix
+    #PLOT GRAPH IF SMALL
+    if numGenes < 50 : # Create a graph from the adjacency matrix
         G = nx.Graph(matrix_dist)
         pos = nx.spring_layout(G)
         nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10)
@@ -267,9 +253,3 @@ if __name__ == '__main__':
         plt.title("Path based on Adjacency Matrix")
         plt.axis('off')
         plt.show()
-
-    record = pd.read_csv(os.getcwd() + "/results.csv")
-    new = pd.DataFrame(results)
-    record = pd.concat([record, new], ignore_index=True)
-    record.to_csv(os.getcwd() + "/results.csv")
-    

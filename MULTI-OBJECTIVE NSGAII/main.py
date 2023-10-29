@@ -45,7 +45,7 @@ class Individual:
         self.inverse_domination_count = float('-inf')  # Number of individuals that dominate this individual
         self.rank = -1  # Member of the n'th pareto front; 0 being the best
         self.crowding_distance = -1            
-        self.fitnesses = np.zeros(2, dtype='uint32') # <- ahora hay dominate
+        self.fitnesses = [0,0] # <- ahora hay dominate
     
     def evaluate_fitness(self):
         total_distance = 0
@@ -58,9 +58,6 @@ class Individual:
 
         self.fitnesses[0] = total_distance
         self.fitnesses[1] = total_cost
-
-    
-
    
     def dominates(self, individual_b):
         """
@@ -68,7 +65,7 @@ class Individual:
             a is no worse than b in regards to all fitnesses
             a is strictly better than b in regards to at least one fitness
         Assumes that lower fitness is better, as is the case with cost-distance-TSP.
-        :return: True if individual_a dominates individual_b
+        ouput-> True if individual_a dominates individual_b
                  False if individual_b dominates individual_a or neither dominate each other
         """
         a_no_worse_b = 0  # a <= b
@@ -87,21 +84,14 @@ class Individual:
         return a_no_worse_b == n_objectives and a_strictly_better_b >= 1
     
     def __lt__(self, other):
-        """ Even though A < B, that does not indicate that A.dominates(B), as A may have :
-         lower value for fit. (cost) but greater value for fit. (distance) 
-         and therefore neither dominate each other. """
-        return self.fitnesses[0] < other.fitnesses[0] or \
-            (self.fitnesses[0] == other.fitnesses[0] and
-             self.fitnesses[1] < other.fitnesses[1])
+        return self.fitnesses[0] < other.fitnesses[0] or (self.fitnesses[0] == other.fitnesses[0] and self.fitnesses[1] < other.fitnesses[1])
 
     def __gt__(self, other):
         return self.fitnesses[0] > other.fitnesses[0] or \
-            (self.fitnesses[0] == other.fitnesses[0] and
-             self.fitnesses[1] > other.fitnesses[1])
+            (self.fitnesses[0] == other.fitnesses[0] and self.fitnesses[1] > other.fitnesses[1])
 
     def __eq__(self, other):
-        return self.fitnesses[0] == other.fitnesses[0] and \
-            self.fitnesses[1] == other.fitnesses[1]
+        return self.fitnesses[0] == other.fitnesses[0] and  self.fitnesses[1] == other.fitnesses[1]
 
     def __le__(self, other):
         return self.__lt__(other) or self.__eq__(other)
@@ -371,12 +361,13 @@ class AG_MULTI():
 
 """ #######################   MAIN   #########################################"""
 def read_file_matrix(f):
-    file_name = os.getcwd() + '/' + f
+    file_name = root  + '/files/'+ f
     return np.load(file_name)
 
 if __name__ == '__main__':
     current_file_path = os.path.abspath(__file__)
     folder = os.path.basename(os.path.dirname(current_file_path))
+    root = os.get.pathdir(os.getcwd())
     args = get_config()
     random.seed(4)
 
@@ -394,33 +385,30 @@ if __name__ == '__main__':
 
     ga = AG_MULTI()
 
-
     try:
         result_list, fitness_list = ga.train()
         end_time = time.time()
     except timeout_decorator.TimeoutError:
         end_time = time.time()
     
-    print(fitness_list)
-    print()
     print(f'PROBLEM: {args.file}, SOLVER: {folder}, ITER: {ga.it}, TIME: {end_time-start_time}, BEST_COST: {ga.best.fitness}, BEST_PATH:{ga.best.genoma}' )
-    
-    ok = pd.DataFrame({'PROBLEM':args.file, 'ARGS': str(args), 'SOLVER':folder, 'iter':ga.it, 'TIME':end_time-start_time, 'BEST_COST':ga.best.fitness, 'BEST_PATH':str(ga.best.genoma)}, index=[0])
+    #TO CSV
+    ok = pd.DataFrame({'PROBLEM':'', 'ARGS': str(args), 'SOLVER':folder, 'iter':ga.it, 'TIME':end_time-start_time, 'BEST_COST':str(ga.best.fitness), 'BEST_PATH':str(ga.best.genoma)}, index=[0])
     df = pd.read_csv('results.csv')
     df = pd.concat([df,ok])
     df.to_csv('results.csv', index=False)
     
-    
+    #PLOT 
     fig, ax = plt.subplots()
-    plt.plot(fitness_list)
-    fig = plt.gcf()
+    plt.plot(fitness_list[0], label='distance')
+    plt.plot(fitness_list[1], label='cost')
     plt.xlabel("Iterations")
     plt.ylabel("Fitness: cost")
-    plt.title("Line Plot of fitness evolution")
-    plt.savefig(f'{args.file}.fit.{folder}.png')
+    plt.title( f"{folder}-{args}")
+    plt.savefig(root +f'/figures/{args}.fit.{folder}.png')
     plt.show()
 
-    if numGenes < 20 : # Create a graph from the adjacency matrix
+    if numGenes < 50 : # Create a graph from the adjacency matrix
         G = nx.Graph(matrix_dist)
         pos = nx.spring_layout(G)
         nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10)
@@ -436,8 +424,4 @@ if __name__ == '__main__':
         plt.axis('off')
         plt.show()
 
-    record = pd.read_csv(os.getcwd() + "/results.csv")
-    new = pd.DataFrame(results)
-    record = pd.concat([record, new], ignore_index=True)
-    record.to_csv(os.getcwd() + "/results.csv")
     

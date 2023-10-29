@@ -10,9 +10,6 @@ import time
 import pandas as pd
 import math
 
-# http://www.hg.schaathun.net/FPIA/week14se1.html#x3-20001 
-# https://user.ceng.metu.edu.tr/~ucoluk/research/publications/tspnew.pdf 
-
 TIMEOUT =  11000 # seconds ~ 2 h.
 random.seed(4)
 """ ###########################  UTILS ##################################################"""
@@ -303,13 +300,13 @@ class AG_PER_INV:
 """ ######################### MAIN ################################# """
 
 def read_file_matrix(f):
-    file_name = os.getcwd() + '/' + f
+    file_name = root + '/files/'+ f
     return np.load(file_name)
 
 if __name__ == '__main__':
     current_file_path = os.path.abspath(__file__)
     folder = os.path.basename(os.path.dirname(current_file_path))
-
+    root = os.get.pathdir(os.getcwd()) 
     args = get_config()
     print(args)
     matrix_dist = read_file_matrix(args.file)
@@ -331,8 +328,7 @@ if __name__ == '__main__':
     numMut = math.ceil(mutRate * float(numPop))
     
     args.numKeep = numKeep
-    
-    
+        
     start_time = time.time()
     
     ga = AG_PER_INV(matrix_dist)
@@ -340,29 +336,28 @@ if __name__ == '__main__':
     try:
         result_list, fitness_list = ga.train()
         end_time = time.time()
-        #results = {"Name":folder, "Args":args, "Problem":args.file, "N":pHi, "Time":end_time-start_time,"PATHS":result_list, "COSTS": fitness_list}
     except timeout_decorator.TimeoutError:
         end_time = time.time()
-        #results = {"Name":folder, "Args":args, "Problem":args.file, "N":pHi, "Time":end_time-start_time, "PATHS":ga.final_individuals, "COSTS": ga.final_fitnesses}
     
-    print(f'PROBLEM: {args.file}, SOLVER: {folder}, ITER: {ga.it}, TIME: {end_time-start_time}, BEST_COST: {ga.best.fitness}, BEST_PATH:{ga.best.fenoma}' )
-    ok = pd.DataFrame({'PROBLEM':args.file, 'ARGS': str(args), 'SOLVER':folder, 'iter':ga.it, 'TIME':end_time-start_time, 'BEST_COST':ga.best.fitness, 'BEST_PATH':str(ga.best.fenoma)}, index=[0])
+    #TO CSV SOLUTION
+    print(f'PROBLEM: {args.file}, SOLVER: {folder}, ITER: {ga.it}, TIME: {end_time-start_time}, BEST_COST: {ga.best.fitness}, BEST_PATH:{ga.best.genoma}' )
+    ok = pd.DataFrame({'PROBLEM':args.file, 'ARGS': str(args), 'SOLVER':folder, 'iter':ga.it, 'TIME':end_time-start_time, 'BEST_COST':ga.best.fitness, 'BEST_PATH':str(ga.best.genoma)}, index=[0])
     df = pd.read_csv('results.csv')
     df = pd.concat([df,ok])
     df.to_csv('results.csv', index=False)
-
+    
+    
+    #PLOT FITTNESS
     fig, ax = plt.subplots()
-    # Create the line plot
     plt.plot(fitness_list)
-    fig = plt.gcf()
-    # Add labels and title
     plt.xlabel("Iterations")
     plt.ylabel("Fitness: cost")
-    plt.title("Line Plot of fitness evolution")
-    plt.savefig(f'{args.file}.fit.{folder}.png')
+    plt.title(f"{folder}-{args}")
+    plt.savefig(root + f'/figures/{args}.fit.{folder}.png')
     plt.show()
 
-    if gHi < 20 : # Create a graph from the adjacency matrix
+    #PLOT GRAPH IF SMALL
+    if numGenes < 50 : # Create a graph from the adjacency matrix
         G = nx.Graph(matrix_dist)
         pos = nx.spring_layout(G)
         nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=1000, font_size=10)
